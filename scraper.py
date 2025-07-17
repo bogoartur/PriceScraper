@@ -4,38 +4,8 @@ import json
 import sqlite3
 import time
 
-def get_product_price_from_kabum(product_url):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-
-    }
-    response = requests.get(product_url, headers=headers)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, 'html.parser')
-    script_tag = soup.find('script', {'id': '__NEXT_DATA__', 'type': 'application/json'})
-
-    if script_tag:
-        json_data = json.loads(script_tag.string)
-        props = json_data.get('props', None)
-        page_props = props.get('pageProps', None)
-        product = page_props.get('product', None)
-        prices = product.get('prices', None)
-        price_with_discount = prices.get('priceWithDiscount', None) #chegando na tag de preco da kabum, algoritmo especifico pra kabum
-
-        print(f"7. 'priceWithDiscount' encontrado: {price_with_discount}")
-        return float(price_with_discount)
-
-
-
 
 categorias_kabum = ["hardware", "perifericos", "computadores", "gamer", "celular-smartphone", "tv"] ## vou scrapar algumas paginas de todas essas categorias
-
-# --- Exemplo de uso ---
-product_url = "https://www.kabum.com.br/produto/527400/console-playstation-5-slim-sony-ssd-1tb-com-controle-sem-fio-dualsense-branco-2-jogos-1000038899"
-
-price = get_product_price_from_kabum(product_url)
-
-print(f"\nRESULTADO FINAL: O preço com desconto do produto é: R$ {price:.2f}")
 
 
 def get_products_from_category(category_url):
@@ -102,6 +72,7 @@ def update_kabum_database():
     else:
         for categoria in categorias_kabum:
             for n in range(1, 4):
+                
                 produto = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
                 timestamp_atual = time.time()
 
@@ -109,13 +80,23 @@ def update_kabum_database():
                     if produto[2] < cursor.execute("SELECT menor_preco FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone()[0]:
                         cursor.execute("UPDATE produtos_kabum SET preco_atual = ?, menor_preco = ?, timestamp_ultima_atualizacao = ?, timestamp_menor_preco = ? WHERE id_kabum = ?",
                                        (produto[2], produto[2], timestamp_atual, timestamp_atual, produto[4]))
+                        conn.commit()
+                        print(f"Preço do produto {produto[0]} diminuiu, atualizado.")
                     elif produto[2] != cursor.execute("SELECT preco_atual FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone()[0]:
                         cursor.execute("UPDATE produtos_kabum SET preco_atual = ?, timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
                                        (produto[2], timestamp_atual, produto[4]))
+                        conn.commit()
+                        print(f"Preço do produto {produto[0]} aumentou, atualizado.")
                     else:
                         cursor.execute("UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
                                        (timestamp_atual, produto[4]))
+                        conn.commit()
+                        print(f"Preço do produto {produto[0]} não mudou, mas o timestamp foi atualizado.")
                 else:
                     cursor.execute("INSERT INTO produtos_kabum (nome, url, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, thumbnail_url, categoria, id_kabum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                    (produto[0], produto[1], produto[2], produto[2], timestamp_atual, timestamp_atual, produto[3], categoria, produto[4]))
-                
+                    conn.commit()
+                    print(f"Produto {produto[0]} adicionado ao banco de dados.")
+    conn.close()
+
+update_kabum_database()
