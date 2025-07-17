@@ -93,7 +93,6 @@ def update_kabum_database():
                             cursor.execute("UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
                                            (timestamp_atual, produto[4]))
                             conn.commit()
-                            print(f"Preço do produto {produto[0]} não mudou, mas o timestamp foi atualizado.")
                     else:
                         cursor.execute("INSERT INTO produtos_kabum (nome, url, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, thumbnail_url, categoria, id_kabum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                        (produto[0], produto[1], produto[2], produto[2], timestamp_atual, timestamp_atual, produto[3], categoria, produto[4]))
