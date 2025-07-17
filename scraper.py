@@ -28,7 +28,7 @@ def get_products_from_category(category_url):
                 inner_json_data = json.loads(inner_json_string)
 
                 produtos = inner_json_data.get('catalogServer', {}).get('data')
-                
+                listagem = []
                 for produto in produtos:
                     
                     nome = produto.get('name')
@@ -36,7 +36,9 @@ def get_products_from_category(category_url):
                     preco = produto.get('priceWithDiscount')
                     thumbnail_url = produto.get('image')
                     id = produto.get('code')
-                    return nome, url, preco, thumbnail_url, id
+                    listagem.append((nome, url, preco, thumbnail_url, id))  # Adiciona o produto à lista
+                return listagem
+                
                     
 
 
@@ -62,41 +64,41 @@ def update_kabum_database():
     if not cursor.execute("SELECT * FROM produtos_kabum LIMIT 1").fetchone():
         for categoria in categorias_kabum:
             for n in range(1, 4):
-                produto = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
+                lista_produtos = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
                 timestamp_atual = time.time()
-
-                cursor.execute("INSERT INTO produtos_kabum (nome, url, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, thumbnail_url, categoria, id_kabum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                               (produto[0], produto [1], produto[2], produto[2], timestamp_atual, timestamp_atual, produto[3], categoria, produto[4]))
+                for produto in lista_produtos:
+                    cursor.execute("INSERT INTO produtos_kabum (nome, url, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, thumbnail_url, categoria, id_kabum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                   (produto[0], produto [1], produto[2], produto[2], timestamp_atual, timestamp_atual, produto[3], categoria, produto[4]))
         conn.commit()
         print("Banco de dados atualizado com sucesso!")
     else:
         for categoria in categorias_kabum:
             for n in range(1, 4):
                 
-                produto = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
+                lista_produtos = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
                 timestamp_atual = time.time()
-
-                if cursor.execute("SELECT * FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone():
-                    if produto[2] < cursor.execute("SELECT menor_preco FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone()[0]:
-                        cursor.execute("UPDATE produtos_kabum SET preco_atual = ?, menor_preco = ?, timestamp_ultima_atualizacao = ?, timestamp_menor_preco = ? WHERE id_kabum = ?",
-                                       (produto[2], produto[2], timestamp_atual, timestamp_atual, produto[4]))
-                        conn.commit()
-                        print(f"Preço do produto {produto[0]} diminuiu, atualizado.")
-                    elif produto[2] != cursor.execute("SELECT preco_atual FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone()[0]:
-                        cursor.execute("UPDATE produtos_kabum SET preco_atual = ?, timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
-                                       (produto[2], timestamp_atual, produto[4]))
-                        conn.commit()
-                        print(f"Preço do produto {produto[0]} aumentou, atualizado.")
+                for produto in lista_produtos:
+                    if cursor.execute("SELECT * FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone():
+                        if produto[2] < cursor.execute("SELECT menor_preco FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone()[0]:
+                            cursor.execute("UPDATE produtos_kabum SET preco_atual = ?, menor_preco = ?, timestamp_ultima_atualizacao = ?, timestamp_menor_preco = ? WHERE id_kabum = ?",
+                                           (produto[2], produto[2], timestamp_atual, timestamp_atual, produto[4]))
+                            conn.commit()
+                            print(f"Preço do produto {produto[0]} diminuiu, atualizado.")
+                        elif produto[2] != cursor.execute("SELECT preco_atual FROM produtos_kabum WHERE id_kabum = ?", (produto[4],)).fetchone()[0]:
+                            cursor.execute("UPDATE produtos_kabum SET preco_atual = ?, timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
+                                           (produto[2], timestamp_atual, produto[4]))
+                            conn.commit()
+                            print(f"Preço do produto {produto[0]} aumentou, atualizado.")
+                        else:
+                            cursor.execute("UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
+                                           (timestamp_atual, produto[4]))
+                            conn.commit()
+                            print(f"Preço do produto {produto[0]} não mudou, mas o timestamp foi atualizado.")
                     else:
-                        cursor.execute("UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
-                                       (timestamp_atual, produto[4]))
+                        cursor.execute("INSERT INTO produtos_kabum (nome, url, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, thumbnail_url, categoria, id_kabum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                       (produto[0], produto[1], produto[2], produto[2], timestamp_atual, timestamp_atual, produto[3], categoria, produto[4]))
                         conn.commit()
-                        print(f"Preço do produto {produto[0]} não mudou, mas o timestamp foi atualizado.")
-                else:
-                    cursor.execute("INSERT INTO produtos_kabum (nome, url, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, thumbnail_url, categoria, id_kabum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                   (produto[0], produto[1], produto[2], produto[2], timestamp_atual, timestamp_atual, produto[3], categoria, produto[4]))
-                    conn.commit()
-                    print(f"Produto {produto[0]} adicionado ao banco de dados.")
+                        print(f"Produto {produto[0]} adicionado ao banco de dados.")
     conn.close()
 
 update_kabum_database()
