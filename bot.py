@@ -3,6 +3,8 @@ import sqlite3
 import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, Application, CallbackQueryHandler, CommandHandler, ContextTypes, InlineQueryHandler
+import scraper
+from scraper import get_product_price_from_kabum
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -11,27 +13,27 @@ logging.basicConfig(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Olá, esse bot de preços é um projeto de férias em desenvolvimento por Artur Bogo. O único objetivo é de estudo e aprendizado. Você pode me encontrar no GitHub: bogoartur, ou no LinkedIn: Artur Bogo." \
-    "\nSelecione uma opção abaixo para navegar pelas categorias de produtos disponíveis para consulta de preços.")
-    keyboard = [
-        [
-            InlineKeyboardButton("Hardware", callback_data='hardware'),
-            InlineKeyboardButton("Periféricos", callback_data='perifericos'),
-        ]
-    ]
-    keyboard.append([
-        InlineKeyboardButton("Computadores", callback_data='computadores'),
-        InlineKeyboardButton("Gamer", callback_data='gamer'),
-    ])
-    keyboard.append([
-        InlineKeyboardButton("Smartphones", callback_data='celular-smartphone'),
-        InlineKeyboardButton("TVs", callback_data='tv'),
-    ])
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    "\nDigite @ArturPM_bot seguido do nome de um produto para realizar uma pesquisa, ou envie o nome do produto no chat sem @ para ver o top 10 encontrados.")
+    # keyboard = [
+    #     [
+    #         InlineKeyboardButton("Hardware", callback_data='hardware'),
+    #         InlineKeyboardButton("Periféricos", callback_data='perifericos'),
+    #     ]
+    # ]
+    # keyboard.append([
+    #     InlineKeyboardButton("Computadores", callback_data='computadores'),
+    #     InlineKeyboardButton("Gamer", callback_data='gamer'),
+    # ])
+    # keyboard.append([
+    #     InlineKeyboardButton("Smartphones", callback_data='celular-smartphone'),
+    #     InlineKeyboardButton("TVs", callback_data='tv'),
+    # ])
+    # reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        "Escolha uma categoria para ver os produtos disponíveis:",
-        reply_markup=reply_markup
-    )
+    # await update.message.reply_text(
+    #     "Escolha uma categoria para ver os produtos disponíveis:",
+    #     reply_markup=reply_markup
+    # )
 
 async def pesquisa_produto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text
@@ -39,12 +41,14 @@ async def pesquisa_produto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn, cursor = connect_db()
     cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE nome LIKE ? LIMIT 10", ('%' + query + '%',))
     produtos = cursor.fetchall()
-    results = []
     for produto in produtos:
+        get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
+        cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE id_kabum = ? LIMIT 1", (produto[2],))
+        atualizado_produto = cursor.fetchone()
         await context.bot.send_photo(
             chat_id=update.effective_chat.id,
-            photo=produto[1],
-            caption=f"{produto[0]} \nPreço atual: R$ {produto[3]:.2f} \nMenor preço registrado: R$ {produto[4]:.2f} em {time.ctime(produto[6])}. \n{produto[7]}"
+            photo=atualizado_produto[1],
+            caption=f"{atualizado_produto[0]} \nPreço atual: R$ {atualizado_produto[3]:.2f} \nMenor preço registrado: R$ {atualizado_produto[4]:.2f} em {time.ctime(atualizado_produto[6])}. \n{atualizado_produto[7]}"
         )
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -61,16 +65,18 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE nome LIKE ? LIMIT 10", ('%' + query + '%',))
     produtos = cursor.fetchall()
     for produto in produtos:
-        cursor.execute("")
+        get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
+        cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE id_kabum = ? LIMIT 1", (produto[2],))
+        atualizado_produto = cursor.fetchone()
         results.append(
             InlineQueryResultArticle(
-                id=produto[2],
-                title=produto[0],
-                thumbnail_url=produto[1],
-                description=f"R$ {produto[3]:.2f}",
+                id=str(atualizado_produto[2]),
+                title=atualizado_produto[0],
+                thumbnail_url=atualizado_produto[1],
+                description=f"R$ {atualizado_produto[3]:.2f}",
                 input_message_content=
                 InputTextMessageContent(
-                    f"{produto[0]}"
+                    f"{atualizado_produto[0]}"
                 )
             )
         )

@@ -4,8 +4,63 @@ import json
 import sqlite3
 import time
 
+def connect_db():
+    conn = sqlite3.connect("produtos_kabum.db")
+    cursor = conn.cursor()
+    return conn, cursor
 
 categorias_kabum = ["hardware", "perifericos", "computadores", "gamer", "celular-smartphone", "tv"] ## vou scrapar algumas paginas de todas essas categorias
+
+def get_product_price_from_kabum(product_url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
+    }
+    response = requests.get(product_url, headers=headers)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    script_tag = soup.find('script', {'id': '__NEXT_DATA__', 'type': 'application/json'})
+    conn, cursor = connect_db()
+    cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE url = ? LIMIT 10", (product_url,))
+    produto = cursor.fetchone()
+    if not produto:
+        return
+    if script_tag:
+        json_data = json.loads(script_tag.string)
+        props = json_data.get('props', None)
+        page_props = props.get('pageProps', None)
+        product = page_props.get('product', None)
+        prices = product.get('prices', None)
+        price_with_discount = prices.get('priceWithDiscount', None) #chegando na tag de preco da kabum, algoritmo especifico pra kabum
+
+        print(f"7. 'priceWithDiscount' encontrado: {price_with_discount}")
+            # Checa se precisa atualizar (timestamp_ultima_atualizacao)
+        timestamp_atual = time.time()
+        preco_atual_db = produto[3]
+        menor_preco_db = produto[4]
+        id_kabum = produto[2]
+        if produto[5] < time.time() - 43200:
+            if price_with_discount < menor_preco_db:
+                cursor.execute(
+                    "UPDATE produtos_kabum SET preco_atual = ?, menor_preco = ?, timestamp_ultima_atualizacao = ?, timestamp_menor_preco = ? WHERE id_kabum = ?",
+                    (price_with_discount, price_with_discount, timestamp_atual, timestamp_atual, id_kabum)
+                )
+                conn.commit()
+                print(f"Preço do produto {produto[0]} diminuiu, atualizado.")
+            # Atualiza preco_atual se mudou, mas não é o menor
+            elif price_with_discount != preco_atual_db:
+                cursor.execute(
+                    "UPDATE produtos_kabum SET preco_atual = ?, timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
+                    (price_with_discount, timestamp_atual, id_kabum)
+                )
+                conn.commit()
+                print(f"Preço do produto {produto[0]} mudou, atualizado.")
+            else:
+                cursor.execute(
+                    "UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
+                    (timestamp_atual, id_kabum)
+                )
+                conn.commit()
 
 
 def get_products_from_category(category_url):
@@ -74,7 +129,6 @@ def update_kabum_database():
     else:
         for categoria in categorias_kabum:
             for n in range(1, 4):
-                
                 lista_produtos = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
                 timestamp_atual = time.time()
                 for produto in lista_produtos:
