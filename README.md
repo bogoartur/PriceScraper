@@ -1,6 +1,6 @@
 # 🚀 PriceScraper: Monitoramento de Preços Kabum com Telegram Bot
 
-**PriceScraper** é uma solução automatizada para rastreamento de preços na [Kabum.com.br](https://www.kabum.com.br), integrada a um **bot do Telegram** para consultas e notificações em tempo real. Desenvolvido para demonstrar habilidades em **web scraping**, **persistência de dados** e **interação com APIs**, o PriceScraper é uma ferramenta eficiente para acompanhar o histórico e as flutuações de preços de produtos.
+**PriceScraper** é uma solução automatizada para rastreamento de preços na [Kabum.com.br](https://www.kabum.com.br), integrada a um **bot do Telegram** para consultas em tempo real. Desenvolvido para estudar e testar minhas habilidades em **web scraping** e **interação com APIs**, o PriceScraper é uma ferramenta eficiente para acompanhar o histórico e as flutuações de preços de produtos.
 
 ---
 
@@ -9,7 +9,7 @@
 - **Scraping de Preços**: Coleta dados de produtos e preços diretamente da Kabum.
 - **Banco de Dados SQLite**: Armazenamento local eficiente com histórico de preços e o menor preço já registrado.
 - **Bot do Telegram Integrado**: Interface amigável para consultas via comandos e buscas inline.
-- **Atualização Inteligente**: Raspagem otimizada que busca novos preços apenas quando necessário.
+- **Atualização Inteligente**: Scraping otimizado que busca novos preços apenas quando necessário.
 
 ---
 
@@ -32,7 +32,7 @@
 ### 2. Clonar o Repositório
 
 ```bash
-git clone <URL_DO_SEU_REPOSITORIO>
+git clone https://github.com/bogoartur/PriceScraper
 cd PriceScraper  # Ou o nome da pasta clonada
 ```
 
@@ -40,21 +40,16 @@ cd PriceScraper  # Ou o nome da pasta clonada
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # macOS/Linux
-# ou venv\Scripts\activate  # Windows
+venv\Scripts\activate
 
 pip install requests beautifulsoup4 python-telegram-bot
 ```
 
 ### 4. Configurar o Token do Bot do Telegram
 
-Crie um arquivo chamado `token_telegram.txt` na raiz do projeto e insira o token do seu bot:
+Crie um arquivo chamado `token_telegram.txt` na raiz do projeto e insira o token do seu bot
 
-```
-SEU_TOKEN_DO_TELEGRAM_AQUI
-```
-
-> ⚠️ Este arquivo está incluído no `.gitignore` e **não deve ser versionado**.
+> ⚠️ Este arquivo está incluído no `.gitignore` e **não deve ser publicado**.
 
 ### 5. Inicializar o Banco de Dados
 
@@ -64,7 +59,7 @@ Execute o script para realizar o scraping inicial e popular o banco de dados (`p
 python scraper.py
 ```
 
-> ⏳ Esse processo pode levar alguns minutos, dependendo da quantidade de produtos.
+> ⏳ Esse processo pode levar alguns minutos, dependendo da quantidade de produtos e páginas por categoria.
 
 ### 6. Iniciar o Bot
 
@@ -86,5 +81,5 @@ python bot.py
 
 ---
 
-> Projeto feito com 💻 por [Seu Nome].  
-> Sinta-se à vontade para contribuir ou abrir issues!
+> Projeto feito com 💻 por [Artur Bogo]linkedin.com/in/arturbogo.  
+> Sinta-se à vontade para contribuir!
