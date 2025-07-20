@@ -37,12 +37,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pesquisa_produto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.message.text
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Você pesquisou por: {query}. Esses são os resultados:")
+
     conn, cursor = connect_db()
     cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE nome LIKE ? LIMIT 10", ('%' + query + '%',))
     produtos = cursor.fetchall()
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Encontrei estes produtos com sua busca, amigo:")
     for produto in produtos:
-        get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
+        if produto[5] < time.time() - 43200:
+            get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
         cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE id_kabum = ? LIMIT 1", (produto[2],))
         atualizado_produto = cursor.fetchone()
         await context.bot.send_photo(
@@ -50,6 +52,7 @@ async def pesquisa_produto(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=atualizado_produto[1],
             caption=f"{atualizado_produto[0]} \nPreço atual: R$ {atualizado_produto[3]:.2f} \nMenor preço registrado: R$ {atualizado_produto[4]:.2f} em {time.ctime(atualizado_produto[6])}. \n{atualizado_produto[7]}"
         )
+    
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -65,7 +68,8 @@ async def inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE nome LIKE ? LIMIT 10", ('%' + query + '%',))
     produtos = cursor.fetchall()
     for produto in produtos:
-        get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
+        if produto[5] < time.time() - 43200:
+            get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
         cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE id_kabum = ? LIMIT 1", (produto[2],))
         atualizado_produto = cursor.fetchone()
         results.append(
