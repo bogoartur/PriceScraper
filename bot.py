@@ -44,7 +44,7 @@ async def pesquisa_produto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Encontrei estes produtos com sua busca, amigo:")
     for produto in produtos:
         if produto[5] < time.time() - 43200:
-            get_product_price_from_kabum(produto[7])  # Atualiza o preço do produto
+            get_product_price_from_kabum(produto[7])  # Atualiza o preço d o produto
         cursor.execute("SELECT nome, thumbnail_url, id_kabum, preco_atual, menor_preco, timestamp_ultima_atualizacao, timestamp_menor_preco, url FROM produtos_kabum WHERE id_kabum = ? LIMIT 1", (produto[2],))
         atualizado_produto = cursor.fetchone()
         await context.bot.send_photo(

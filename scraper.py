@@ -34,7 +34,7 @@ def get_product_price_from_kabum(product_url):
         price_with_discount = prices.get('priceWithDiscount', None) #chegando na tag de preco da kabum, algoritmo especifico pra kabum
 
         print(f"7. 'priceWithDiscount' encontrado: {price_with_discount}")
-            # Checa se precisa atualizar (timestamp_ultima_atualizacao)
+            #  Checa se precisa atualizar (timestamp_ultima_atualizacao)
         timestamp_atual = time.time()
         preco_atual_db = produto[3]
         menor_preco_db = produto[4]
