@@ -81,5 +81,5 @@ python bot.py
 
 ---
 
-> Projeto feito com 💻 por ['Artur Bogo'](linkedin.com/in/arturbogo).  
+> Projeto feito com 💻 por [`Artur Bogo`](linkedin.com/in/arturbogo).  
 > Sinta-se à vontade para contribuir!
