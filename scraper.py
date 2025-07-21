@@ -55,6 +55,11 @@ def get_product_price_from_kabum(product_url):
                 )
                 conn.commit()
                 print(f"Preço do produto {produto[0]} mudou, atualizado.")
+            elif price_with_discount == preco_atual_db:
+                cursor.execute(
+                    "UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ?, timestamp_menor_preco = ? WHERE id_kabum = ?",
+                    (timestamp_atual, timestamp_atual, id_kabum)
+                )
             else:
                 cursor.execute(
                     "UPDATE produtos_kabum SET timestamp_ultima_atualizacao = ? WHERE id_kabum = ?",
@@ -118,7 +123,7 @@ def update_kabum_database():
     
     if not cursor.execute("SELECT * FROM produtos_kabum LIMIT 1").fetchone():
         for categoria in categorias_kabum:
-            for n in range(1, 4):
+            for n in range(1, 6):
                 lista_produtos = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
                 timestamp_atual = time.time()
                 for produto in lista_produtos:
@@ -128,7 +133,7 @@ def update_kabum_database():
         print("Banco de dados atualizado com sucesso!")
     else:
         for categoria in categorias_kabum:
-            for n in range(1, 4):
+            for n in range(1, 6):
                 lista_produtos = get_products_from_category(f'https://www.kabum.com.br/{categoria}?page_number={n}&page_size=100&sort=most_searched')
                 timestamp_atual = time.time()
                 for produto in lista_produtos:
